@@ -9,6 +9,14 @@ from datetime import date
 bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
 chat_id = os.getenv('TELEGRAM_CHAT_ID')
 
+# ✅ طباعة القيم للتحقق في اللوج
+print(f"✅ Using bot_token: {bot_token}")
+print(f"✅ Using chat_id: {chat_id}")
+
+if not bot_token or not chat_id:
+    print("❌ مشكلة: لم يتم قراءة الأسرار بشكل صحيح من GitHub Secrets.")
+    exit(1)
+
 def fetch_data(symbols, start_date, end_date, interval):
     return yf.download(
         tickers=symbols,
@@ -23,7 +31,8 @@ def fetch_data(symbols, start_date, end_date, interval):
 
 def detect_sell_breakout(df, lose_body_percent=0.55):
     o, h, l, c = df['Open'].values, df['High'].values, df['Low'].values, df['Close'].values
-    ratio = np.where((h - l) != 0, np.abs(o - c) / (h - l), 0)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        ratio = np.where((h - l) != 0, np.abs(o - c) / (h - l), 0)
     valid = (c < o) & (ratio >= lose_body_percent)
     highs = np.full(len(df), np.nan)
     breakout = np.zeros(len(df), dtype=bool)
@@ -36,7 +45,7 @@ def detect_sell_breakout(df, lose_body_percent=0.55):
     df['breakout'] = breakout
     return df
 
-# رموز السوق السعودي (أضف المزيد إذا تريد)
+# رموز السوق السعودي
 symbols_input = "1120 2380 1050"
 symbols = [sym.strip() + ".SR" for sym in symbols_input.split()]
 start_date = '2023-01-01'
@@ -56,7 +65,6 @@ if data is not None:
         except:
             continue
 
-# إعداد الرسالة
 if results:
     message = f"📊 تقرير اختراقات السوق السعودي ({date.today()}):\n"
     for sym, price in results:
@@ -65,13 +73,14 @@ if results:
 else:
     message = f"🔎 لا توجد اختراقات جديدة اليوم ({date.today()})."
 
-# إرسال الرسالة إلى Telegram
 url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
 params = {'chat_id': chat_id, 'text': message, 'parse_mode': 'HTML'}
 response = requests.post(url, params=params)
+
+print(f"✅ Telegram response status: {response.status_code}")
+print(f"✅ Telegram response text: {response.text}")
 
 if response.status_code == 200:
     print("✅ تم إرسال التقرير عبر Telegram!")
 else:
     print(f"❌ فشل الإرسال، رمز الخطأ: {response.status_code}")
-    print(response.text)
