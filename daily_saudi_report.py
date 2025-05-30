@@ -1,4 +1,3 @@
-
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -6,7 +5,7 @@ import requests
 import os
 from datetime import date
 
-# إعداد Telegram من GitHub Secrets
+# قراءة الأسرار من GitHub Secrets
 bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
 chat_id = os.getenv('TELEGRAM_CHAT_ID')
 
@@ -37,8 +36,8 @@ def detect_sell_breakout(df, lose_body_percent=0.55):
     df['breakout'] = breakout
     return df
 
-# رموز السوق السعودي
-symbols_input = "1120 2380 1050"  # أضف هنا كل الرموز التي تريدها
+# رموز السوق السعودي (أضف المزيد إذا تريد)
+symbols_input = "1120 2380 1050"
 symbols = [sym.strip() + ".SR" for sym in symbols_input.split()]
 start_date = '2023-01-01'
 end_date = str(date.today())
@@ -57,6 +56,7 @@ if data is not None:
         except:
             continue
 
+# إعداد الرسالة
 if results:
     message = f"📊 تقرير اختراقات السوق السعودي ({date.today()}):\n"
     for sym, price in results:
@@ -65,6 +65,7 @@ if results:
 else:
     message = f"🔎 لا توجد اختراقات جديدة اليوم ({date.today()})."
 
+# إرسال الرسالة إلى Telegram
 url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
 params = {'chat_id': chat_id, 'text': message, 'parse_mode': 'HTML'}
 response = requests.post(url, params=params)
